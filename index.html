@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+  <title>Gestionale Preventivi – Retail Moda</title>
+  <meta name="theme-color" content="#0f1115"/>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <style>
+    :root{ --bg:#0f1115; --card:#171a21; --muted:#8b95a7; --txt:#e6eaf2; --acc:#6ae3ff; --border:#252b36; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif}
+    h1{font-size:clamp(1.1rem, 2.8vw, 1.4rem);margin:0 0 .4rem 0}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px 16px calc(76px + env(safe-area-inset-bottom));}
+    .topbar{position:sticky;top:0;z-index:10;backdrop-filter:blur(6px);background:rgba(15,17,21,.6);border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;margin:-16px -16px 12px}
+    .grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
+    .card{background:#171a21;border:1px solid var(--border);border-radius:14px;padding:12px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .row > *{flex:1 1 180px}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--border);padding:10px 6px;text-align:left;font-size:15px}
+    th{position:sticky;top:0;background:#1a1f2a;z-index:1}
+    .right{text-align:right}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:.3rem .6rem;border-radius:999px;background:#111520;border:1px solid var(--border);color:#8b95a7;font-size:12px}
+    .logoBar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .logoBar img{height:34px;object-fit:contain;background:#0d1016;border:1px solid var(--border);border-radius:8px;padding:6px}
+    @media (max-width:860px){ .grid{grid-template-columns:1fr} .row > *{flex:1 1 100%} .logoBar{flex-direction:column;align-items:flex-start;gap:8px} .logoBar img{height:30px} }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="inline">
+      <h1>Gestionale Preventivi – Retail Moda</h1>
+      <span class="pill">Mobile‑ready · Offline · PWA</span>
+    </div>
+    <div class="actions">
+      <button id="btnNuovo">+ Nuovo</button>
+      <button id="btnStampa">PDF</button>
+      <button id="btnExport">Export</button>
+      <label class="pill" for="fileImport">Import<input id="fileImport" type="file" accept="application/json" style="display:none"></label>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="logoBar">
+      <img src="assets/bottega-busnelli.svg" alt="Bottega Busnelli logo">
+      <img src="assets/busnelli-corporate.svg" alt="Busnelli Corporate logo">
+    </div>
+
+    <div class="grid" id="appGrid" style="display:none">
+      <div class="card">
+        <h2>Dati preventivo</h2>
+        <div class="row">
+          <input id="cliente" placeholder="Cliente / Brand"/>
+          <input id="progetto" placeholder="Nome progetto (es. Pop‑up Milano SS25)"/>
+          <input id="luogo" placeholder="Luogo (città, paese)"/>
+        </div>
+        <div class="row">
+          <input id="referente" placeholder="Referente (nome, email, tel.)"/>
+          <input id="validita" placeholder="Validità offerta (es. 30 giorni)"/>
+          <input id="codice" placeholder="Codice preventivo (auto)"/>
+        </div>
+        <div class="row">
+          <select id="stato"><option>Bozza</option><option>Inviato</option><option>Accettato</option><option>Rifiutato</option><option>Archiviato</option></select>
+          <select id="template"><option value="">Template vuoto</option><option value="negozio">Negozio</option><option value="popup">Pop‑up</option><option value="shopinshop">Shop‑in‑shop</option></select>
+        </div>
+        <div class="row">
+          <select id="valuta"><option value="EUR" selected>EUR</option><option>USD</option><option>GBP</option></select>
+          <input id="cambio" type="number" step="0.0001" placeholder="Cambio (1 EUR = x valuta)" />
+          <input id="iva" type="number" step="0.1" placeholder="IVA %" value="22"/>
+        </div>
+        <div class="row">
+          <input id="overheads" type="number" step="0.1" placeholder="Overheads %" value="8"/>
+          <input id="margine" type="number" step="0.1" placeholder="Margine %" value="20"/>
+          <input id="sconto" type="number" step="0.1" placeholder="Sconto %" value="0"/>
+        </div>
+        <div class="row"><button id="btnAggiungiVoce">+ Aggiungi voce</button></div>
+        <div style="overflow:auto;max-height:420px;border:1px solid var(--border);border-radius:10px">
+          <table id="tabellaVoci">
+            <thead>
+              <tr>
+                <th>Categoria</th><th>Descrizione</th><th>Q.tà</th><th class="right">Materiali</th><th class="right">Ore</th><th class="right">€/h</th><th class="right">Terzi</th><th class="right">% Markup</th><th class="right">Totale</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr><td colspan="8" class="right">Tot. diretti</td><td class="right" id="totDiretti">€0</td></tr>
+              <tr><td colspan="8" class="right">Overheads (<span id="lblOverheads">8%</span>)</td><td class="right" id="totOverheads">€0</td></tr>
+              <tr><td colspan="8" class="right">Margine (<span id="lblMargine">20%</span>)</td><td class="right" id="totMargine">€0</td></tr>
+              <tr><td colspan="8" class="right">Imponibile</td><td class="right" id="totImponibile">€0</td></tr>
+              <tr><td colspan="8" class="right">IVA (<span id="lblIva">22%</span>)</td><td class="right" id="totIva">€0</td></tr>
+              <tr><td colspan="8" class="right"><strong>TOTALE</strong></td><td class="right" id="totFinale"><strong>€0</strong></td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <textarea id="note" rows="5" placeholder="Note (tempi, esclusioni, pagamenti, permessi, sicurezza, ignifugazioni, ecc.)"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Lista preventivi</h2>
+        <div id="lista" class="stack"></div>
+      </div>
+    </div>
+
+    <div id="empty" class="card">
+      <h2>Benvenuto 👋</h2>
+      <p class="muted">Crea il tuo primo preventivo con <strong>+ Nuovo</strong> o importa un file JSON.</p>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(console.error);
+      });
+    }
+  </script>
+  <script>
+    const el = s=>document.querySelector(s), els=s=>Array.from(document.querySelectorAll(s));
+    const uid = ()=>'PRV-'+Math.random().toString(36).slice(2,6).toUpperCase()+'-'+Date.now().toString().slice(-5);
+    function money(n, cur){ try { return new Intl.NumberFormat('it-IT',{style:'currency',currency:cur}).format(n||0) } catch(e){ return (n||0).toFixed(2) } }
+
+    let state = { preventivi:[], corrente:null };
+    const CATS = ["Arredi su misura","Finiture","Illuminazione","Impianti","Grafica/Branding","Vetrine/Props","Trasporto","Montaggio","Permessi/Sicurezza","Project Management","Altro"];
+
+    function save(){ localStorage.setItem('gestionale_preventivi_v1', JSON.stringify(state)); renderLista(); }
+    function load(){ const raw = localStorage.getItem('gestionale_preventivi_v1'); if(raw){ try{ state = JSON.parse(raw) }catch(e){} } renderLista(); }
+    function nuovo(){
+      const id = uid();
+      const p = {id, createdAt:new Date().toISOString(), stato:"Bozza", cliente:"", progetto:"", luogo:"", referente:"", validita:"30 giorni", codice:id, valuta:"EUR", cambio:1, iva:22, overheads:8, margine:20, sconto:0, voci:[], note:"", totals:{}, meta:{template:""}};
+      state.preventivi.unshift(p); state.corrente=p.id; open(p); save();
+    }
+    function open(p){
+      el('#appGrid').style.display='grid'; el('#empty').style.display='none';
+      el('#stato').value=p.stato; el('#cliente').value=p.cliente; el('#progetto').value=p.progetto; el('#luogo').value=p.luogo;
+      el('#referente').value=p.referente; el('#validita').value=p.validita; el('#codice').value=p.codice;
+      el('#valuta').value=p.valuta; el('#cambio').value=p.cambio; el('#iva').value=p.iva;
+      el('#overheads').value=p.overheads; el('#margine').value=p.margine; el('#sconto').value=p.sconto;
+      renderVoci(p); calc(p);
+    }
+    function renderLista(){
+      const box = el('#lista'); if(!box) return; box.innerHTML="";
+      state.preventivi.forEach(p=>{
+        const d = document.createElement('div'); d.className='card'; d.style.padding='10px';
+        d.innerHTML = \`<div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+          <div><div><strong>\${p.cliente||'—'}</strong> · \${p.progetto||p.id}</div><div style="font-size:12px;color:#8b95a7">\${new Date(p.createdAt).toLocaleDateString('it-IT')} • \${p.luogo||'—'} • \${p.stato}</div></div>
+          <div style="white-space:nowrap">\${money((p.totals && p.totals.totale)||0, p.valuta)}</div></div>\`;
+        d.onclick=()=>{ state.corrente=p.id; open(p); save(); };
+        box.appendChild(d);
+      });
+    }
+    function renderVoci(p){
+      const tb = el('#tabellaVoci tbody'); tb.innerHTML="";
+      (p.voci||[]).forEach((v,i)=>{
+        const opts = CATS.map(c=>\`<option \${v.cat===c?'selected':''}>\${c}</option>\`).join('');
+        tb.insertAdjacentHTML('beforeend', \`<tr data-idx="\${i}">
+          <td><select class="cat">\${opts}</select></td>
+          <td><input class="desc" value="\${v.desc||''}"/></td>
+          <td><input class="qty" type="number" min="0" step="1" value="\${v.qty??1}"></td>
+          <td class="right"><input class="mat" type="number" step="0.01" value="\${v.materiali??0}"></td>
+          <td class="right"><input class="ore" type="number" step="0.1" value="\${v.ore??0}"></td>
+          <td class="right"><input class="tariffa" type="number" step="0.01" value="\${v.tariffa??45}"></td>
+          <td class="right"><input class="terzi" type="number" step="0.01" value="\${v.terzi??0}"></td>
+          <td class="right"><input class="markup" type="number" step="0.1" value="\${v.markup??15}"></td>
+          <td class="right total">\${money(v.tot||0, p.valuta)}</td>
+        </tr>\`);
+      });
+    }
+    function recalc(){
+      const p = state.preventivi.find(x=>x.id===state.corrente); if(!p) return;
+      p.stato=el('#stato').value; p.cliente=el('#cliente').value; p.progetto=el('#progetto').value; p.luogo=el('#luogo').value;
+      p.referente=el('#referente').value; p.validita=el('#validita').value; p.codice=el('#codice').value;
+      p.valuta=el('#valuta').value; p.cambio=+el('#cambio').value||1; p.iva=+el('#iva').value||0;
+      p.overheads=+el('#overheads').value||0; p.margine=+el('#margine').value||0; p.sconto=+el('#sconto').value||0;
+      const rows = els('#tabellaVoci tbody tr');
+      p.voci = rows.map(r=>{
+        const v={cat:r.querySelector('.cat').value, desc:r.querySelector('.desc').value, qty:+r.querySelector('.qty').value||0, materiali:+r.querySelector('.mat').value||0, ore:+r.querySelector('.ore').value||0, tariffa:+r.querySelector('.tariffa').value||0, terzi:+r.querySelector('.terzi').value||0, markup:+r.querySelector('.markup').value||0};
+        const base=(v.materiali + v.ore*v.tariffa + v.terzi) * (v.qty||1); v.tot=base*(1+(v.markup||0)/100); return v;
+      });
+      calc(p); save();
+    }
+    function calc(p){
+      const totDiretti=(p.voci||[]).reduce((s,v)=>s+(v.tot||0),0);
+      const ov=totDiretti*(p.overheads||0)/100;
+      const marg=(totDiretti+ov)*(p.margine||0)/100;
+      const impon=(totDiretti+ov+marg)*(1-(p.sconto||0)/100);
+      const iva=impon*(p.iva||0)/100;
+      const tot=impon+iva;
+      p.totals={totDiretti:totDiretti, ov:ov, margine:marg, imponibile:impon, iva:iva, totale:tot};
+      document.getElementById('totDiretti').textContent=money(totDiretti,p.valuta);
+      document.getElementById('totOverheads').textContent=money(ov,p.valuta);
+      document.getElementById('totMargine').textContent=money(marg,p.valuta);
+      document.getElementById('totImponibile').textContent=money(impon,p.valuta);
+      document.getElementById('totIva').textContent=money(iva,p.valuta);
+      document.getElementById('totFinale').innerHTML='<strong>'+money(tot,p.valuta)+'</strong>';
+      els('#tabellaVoci tbody tr').forEach((r,i)=>{ const v=p.voci[i]; r.querySelector('.total').textContent=money(v.tot||0,p.valuta); });
+    }
+    document.addEventListener('input',(e)=>{ if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) recalc(); });
+    document.getElementById('btnNuovo').onclick=()=>nuovo();
+    document.getElementById('btnAggiungiVoce').onclick=()=>{ const p=state.preventivi.find(x=>x.id===state.corrente); if(!p) return; p.voci.push({cat:CATS[0],desc:"",qty:1,materiali:0,ore:0,tariffa:45,terzi:0,markup:15,tot:0}); renderVoci(p); calc(p); save(); };
+    document.getElementById('btnExport').onclick=()=>{ const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='preventivi_retail_moda.json'; a.click(); URL.revokeObjectURL(a.href); };
+    document.getElementById('btnStampa').onclick=()=>window.print();
+    document.getElementById('fileImport').addEventListener('change', e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.preventivi){ state=d; renderLista(); const p=state.preventivi[0]; if(p){ state.corrente=p.id; open(p);} save(); } else alert('File non valido.'); }catch(err){ alert('Errore import.'); } }; r.readAsText(f); });
+    load();
+  </script>
+</body>
+</html>
